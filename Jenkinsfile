@@ -12,26 +12,43 @@ pipeline {
 
     options {
         timeout(time: 10, unit: 'MINUTES')
-
     }
 
     stages {
         stage('Install') {
             steps {
-                echo "Installing dependencies for ${env.APP_NAME} in environment: ${env.NODE_ENV}..."
                 sh 'npm ci'
             }
         }
         stage('Lint') {
             steps {
-                echo "Running code linter..."
                 sh 'npm run lint'
             }
         }
         stage('Unit Test') {
             steps {
-                echo "Executing unit tests..."
                 sh 'npm test'
+            }
+        }
+
+        stage('Deploy Staging') {
+            when {
+                branch 'develop'
+            }
+            steps {
+                sh 'echo deploying to staging...'
+            }
+        }
+
+        stage('Deploy Production') {
+            when {
+                branch 'main'
+            }
+            input {
+                message 'Deploy to production?'
+            }
+            steps {
+                sh 'echo deploying to production...'
             }
         }
     }
