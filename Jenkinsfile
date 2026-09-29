@@ -1,9 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'node:20-alpine'
-        }
-    }
+    agent any
 
     environment {
         APP_NAME = 'taskflow-api'
@@ -11,7 +7,7 @@ pipeline {
     }
 
     options {
-        timeout(time: 10, unit: 'MINUTES')
+        timeout(time: 15, unit: 'MINUTES')
     }
 
     stages {
@@ -20,48 +16,50 @@ pipeline {
                 sh 'npm ci'
             }
         }
+
         stage('Lint') {
             steps {
                 sh 'npm run lint'
             }
         }
+
+        // Task 1: รัน Unit Test พร้อมเก็บผล Coverage และ JUnit
         stage('Unit Test') {
             steps {
-                sh 'npm test'
+                sh 'npm test -- --coverage --reporters=jest-junit'
             }
         }
 
-        stage('Deploy Staging') {
-            when {
-                branch 'develop'
-            }
+        // Task 3: ส่งโค้ดเข้าสแกนบน SonarQube
+        stage('SonarQube Analysis') {
             steps {
-                sh 'echo deploying to staging...'
+                withSonarQubeEnv('SonarQube') {
+                    sh 'sonar-scanner -Dsonar.projectKey=taskflow-api'
+                }
             }
         }
 
-        stage('Deploy Production') {
-            when {
-                branch 'main'
-            }
-            input {
-                message 'Deploy to production?'
-            }
+        // Task 3: ตรวจสอบเงื่อนไข Quality Gate ภายใน 5 นาที
+        stage('Quality Gate') {
             steps {
-                sh 'echo deploying to production...'
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
             }
         }
     }
 
     post {
+        always {
+            // Task 1: เผยแพร่ผลลัพธ์ JUnit สู่ Jenkins Test Result
+            junit testResults: 'reports/junit.xml', allowEmptyResults: true
+            archiveArtifacts artifacts: 'coverage/**', allowEmptyArchive: true
+        }
         success {
-            echo "✅ ${env.APP_NAME} passed on ${env.NODE_ENV}"
+            echo "✅ ${env.APP_NAME} passed quality gate on ${env.NODE_ENV}"
         }
         failure {
             echo "❌ Failed at stage: ${env.STAGE_NAME}"
-        }
-        always {
-            archiveArtifacts artifacts: 'npm-debug.log*', allowEmptyArchive: true
         }
     }
 }
