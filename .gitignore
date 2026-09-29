@@ -9,6 +9,7 @@ build/
 
 # Testing & Coverage
 coverage/
+reports/
 *.lcov
 .nyc_output
 
@@ -34,9 +35,8 @@ lerna-debug.log*
 jenkins_home/
 jenkins_home.tgz
 
-# OS & Editor files
-.DS_Store
-Thumbs.db
-.idea/
+# Local helper scripts
+docker-shim.sh
+docker.txt
 .vscode/
 *.sw?
