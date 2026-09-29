@@ -8,6 +8,10 @@
     "start": "node index.js"
   },
   "jest": {
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/e2e/"
+    ],
     "coverageReporters": [
       "text",
       "cobertura",
@@ -23,6 +27,7 @@
     "express": "^4.19.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "jest": "^29.7.0",
     "jest-junit": "^16.0.0"
   }
