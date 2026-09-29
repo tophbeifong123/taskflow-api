@@ -10,6 +10,8 @@ build/
 # Testing & Coverage
 coverage/
 reports/
+playwright-report/
+test-results/
 *.lcov
 .nyc_output
 
