@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Tests passed\" && exit 0",
+    "test": "echo \"Intentional test failure for Lab 03\" && exit 1",
     "lint": "echo \"Lint passed\" && exit 0",
     "start": "node index.js"
   },
