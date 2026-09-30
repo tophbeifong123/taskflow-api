@@ -51,3 +51,10 @@ audit.json
 semgrep-report.json
 gitleaks-report.json
 trivy-report.*
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
