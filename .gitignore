@@ -50,3 +50,4 @@ bom.cdx.json*
 audit.json
 semgrep-report.json
 gitleaks-report.json
+trivy-report.*
