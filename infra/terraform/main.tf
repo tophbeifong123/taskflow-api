@@ -20,14 +20,15 @@ resource "aws_security_group" "taskflow_sg" {
 }
 
 resource "aws_instance" "taskflow_vm" {
-  ami           = "ami-0c55b159cbfafe1f0"
+  ami           = "ami-00afc256a955c31b5"
   instance_type = "t2.micro"
 
   vpc_security_group_ids = [aws_security_group.taskflow_sg.id]
 
   # เพิ่ม root block encryption แก้ checkov finding
   root_block_device {
-    encrypted = true
+    encrypted   = true
+    volume_size = 20
   }
 
   tags = {
