@@ -38,8 +38,6 @@ spec:
                 container('node') {
                     echo "🚀 Running inside dynamic ephemeral Kubernetes Pod!"
                     sh 'node --version'
-                    // หน่วงเวลา 90 วินาทีเพื่อให้ Pod ทำงานค้างไว้และเกิดคิวสะสม
-                    sh 'sleep 90'
                     sh 'npm ci'
                     sh 'npm test -- --coverage --reporters=jest-junit'
                 }
