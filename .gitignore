@@ -42,3 +42,11 @@ docker-shim.sh
 docker.txt
 .vscode/
 *.sw?
+
+# Security & Signing Artifacts
+cosign.key*
+cosign.pub
+bom.cdx.json*
+audit.json
+semgrep-report.json
+gitleaks-report.json

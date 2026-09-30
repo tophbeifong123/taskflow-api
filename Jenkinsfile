@@ -65,7 +65,7 @@ pipeline {
                 '''
                 
                 // เซ็นชื่อกำกับ SBOM
-                sh 'cosign sign-blob --yes --key cosign.key --output-signature bom.cdx.json.sig bom.cdx.json'
+                sh 'COSIGN_PASSWORD="" cosign sign-blob --yes --tlog-upload=false --key cosign.key --output-signature bom.cdx.json.sig bom.cdx.json'
             }
         }
 
