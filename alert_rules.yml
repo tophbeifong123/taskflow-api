@@ -1,0 +1,16 @@
+groups:
+  - name: jenkins-slo
+    rules:
+      - record: jenkins_builds_build_count_total
+        expr: default_jenkins_builds_total_build_count_total or default_jenkins_builds_build_count_total
+
+      - record: jenkins_builds_success_build_count_total
+        expr: default_jenkins_builds_success_build_count_total
+
+      - alert: JenkinsQueueBacklog
+        expr: jenkins_queue_size_value > 0 and avg_over_time(jenkins_queue_size_value[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Jenkins build queue backlog exceeds 2 minutes"
