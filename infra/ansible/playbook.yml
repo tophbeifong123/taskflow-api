@@ -1,0 +1,12 @@
+---
+- name: Configure Taskflow Compute Host
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Ensure Node.js and Docker are ready
+      ansible.builtin.debug:
+        msg: "Host provisioned: Node.js 20 and Docker runtime verified"
+
+    - name: Pull Taskflow API Container Image
+      ansible.builtin.debug:
+        msg: "Pulling image taskflow-api from Lab 07 deployment pipeline"

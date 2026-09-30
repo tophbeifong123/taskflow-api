@@ -2,13 +2,13 @@ pipeline {
     agent any
 
     environment {
-        APP_NAME = 'taskflow-api'
-        SHORT_SHA = "${env.GIT_COMMIT.take(7)}"
-        IMAGE_NAME = "taskflow-api:${env.GIT_COMMIT.take(7)}"
+        AWS_ACCESS_KEY_ID     = 'test'
+        AWS_SECRET_ACCESS_KEY = 'test'
+        AWS_DEFAULT_REGION    = 'us-east-1'
     }
 
     options {
-        timeout(time: 15, unit: 'MINUTES')
+        timeout(time: 20, unit: 'MINUTES')
     }
 
     stages {
@@ -18,62 +18,82 @@ pipeline {
             }
         }
 
-        stage('Test & Build App') {
-            steps {
-                sh 'npm ci'
-                sh 'npm test -- --coverage --reporters=jest-junit'
-            }
-        }
-
-        // Task 1 & 2: Build Image with Immutable Tagging (ห้ามใช้ latest)
-        stage('Build Container Image') {
-            steps {
-                echo "Building Docker Image: ${IMAGE_NAME}"
-                sh "docker build -t ${IMAGE_NAME} ."
-            }
-        }
-
-        // Task 3: Container Vulnerability Scanning via Trivy
-        stage('Trivy Image Scan') {
-            steps {
-                script {
-                    echo "🔍 Scanning image ${IMAGE_NAME} with Trivy..."
-                    // สร้างรายงานสรุปแบบ Text และ JSON
-                    sh "trivy image --severity HIGH,CRITICAL --format table ${IMAGE_NAME} > trivy-report.txt || true"
-                    sh "trivy image --severity HIGH,CRITICAL --format json -o trivy-report.json ${IMAGE_NAME} || true"
-
-                    // ตรวจสอบเกณฑ์ Gate (หากต้องการให้บล็อกเมื่อพบ CRITICAL ให้ใส่ exit-code 1)
-                    sh "trivy image --exit-code 0 --severity CRITICAL ${IMAGE_NAME}"
+        // Task 2: Parallel Lint & Validation
+        stage('IaC Lint & Validate') {
+            parallel {
+                stage('Terraform Validate') {
+                    steps {
+                        dir('infra/terraform') {
+                            sh 'terraform init -backend=false'
+                            sh 'terraform validate'
+                            sh 'terraform fmt -check -recursive'
+                        }
+                    }
+                }
+                stage('Ansible Lint') {
+                    steps {
+                        sh 'ansible-lint infra/ansible/playbook.yml || true'
+                    }
                 }
             }
         }
 
-        // Task 4: Blue/Green Deployment to Green Environment
-        stage('Deploy to Green') {
+        // Task 3: Security Scan via tfsec & checkov
+        stage('IaC Security Scan') {
             steps {
-                sh "chmod +x deploy/blue-green.sh"
-                sh "./deploy/blue-green.sh ${IMAGE_NAME} green"
+                dir('infra/terraform') {
+                    sh 'tfsec . --format text --soft-fail > tfsec-report.txt || true'
+                    sh 'checkov -d . --output cli --soft-fail > checkov-report.txt || true'
+                }
             }
         }
 
-        // Task 5: Smoke Testing & Traffic Cutover
-        stage('Traffic Cutover & Verification') {
+        // Task 4: Plan & Archive Plan File
+        stage('Terraform Plan') {
             steps {
-                echo "Verifying production endpoint response..."
-                sh 'curl -s -f http://localhost:3002/tasks'
-                echo "✅ Blue/Green Deployment Verified: Traffic routed to Green!"
+                dir('infra/terraform') {
+                    sh 'terraform init -reconfigure'
+                    sh 'terraform plan -out=tfplan'
+                    sh 'terraform show -no-color tfplan > plan-summary.txt'
+                }
+            }
+        }
+
+        // Task 4: Human Approval Gate (ห้าม apply อัตโนมัติ)
+        stage('Approval Gate') {
+            steps {
+                input message: 'Approve Terraform Apply to provision infrastructure?'
+            }
+        }
+
+        // Task 4: Terraform Apply
+        stage('Terraform Apply') {
+            steps {
+                dir('infra/terraform') {
+                    sh 'terraform apply -input=false tfplan'
+                    sh 'terraform output -json > output.json'
+                }
+            }
+        }
+
+        // Task 5: Configure Host with Ansible
+        stage('Configure with Ansible') {
+            steps {
+                script {
+                    echo "Running Ansible Playbook on provisioned infrastructure..."
+                    sh 'ansible-playbook -i "localhost," -c local infra/ansible/playbook.yml'
+                }
             }
         }
     }
 
     post {
         always {
-            // บันทึกผลรายงานความปลอดภัยของ Container เป็น Artifacts
-            archiveArtifacts artifacts: 'trivy-report.*', allowEmptyArchive: true
-            junit testResults: 'reports/*.xml', allowEmptyResults: true
+            // Archive Plan, Scan Reports และ Outputs เป็น Deliverables
+            archiveArtifacts artifacts: 'infra/terraform/tfplan, infra/terraform/plan-summary.txt, infra/terraform/*-report.txt, infra/terraform/output.json', allowEmptyArchive: true
         }
         success {
-            echo "✅ Lab 07 Complete: ${IMAGE_NAME} deployed via Blue/Green with Zero Downtime!"
+            echo "✅ Lab 08: Infrastructure provisioned and configured successfully!"
         }
         failure {
             echo "❌ Pipeline failed at stage: ${env.STAGE_NAME}"
