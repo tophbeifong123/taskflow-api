@@ -26,7 +26,7 @@ docker run -d --name taskflow-${TARGET_COLOR} -p ${PORT}:3000 ${IMAGE_TAG}
 echo "⏳ Waiting for health check on port ${PORT}..."
 SUCCESS=0
 for i in $(seq 1 10); do
-    if curl -s -f http://localhost:${PORT}/broken-endpoint > /dev/null; then
+    if curl -s -f http://localhost:${PORT}/tasks > /dev/null; then
         echo "✅ Health check passed on attempt ${i}!"
         SUCCESS=1
         break
